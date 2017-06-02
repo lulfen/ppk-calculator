@@ -1,0 +1,8 @@
+*-------------------------------------------------*
+| Welcome to Ulfen's Punsch-per-Krona Calculator! |
+|                                                 |
+| #some cool intro text                           |
+|                                                 |
+|                                                 |
+|                 MAIN MENU                       |
+*-------------------------------------------------*

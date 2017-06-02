@@ -1,0 +1,167 @@
+
+### Check status of input XML
+
+if [ -s punschRawInput ]
+then
+    created=$(grep -oE "<[^>]*tid>[^<]*<[^>]*>" punschRawInput | sed "s/<[^>]*>//g")
+    dlmonth=$(echo $created | grep -o '\-[0-9][0-9]\-' | grep -o '[0-9]*')
+    dldate=$(echo $created | grep -o '\-[0-9][0-9][^\-]' | grep -o '[0-9]*')
+    echo -e 'dl_status.'$date'.'$dlmonth$dldate >>punsch.log
+else
+    echo -e 'dl_status.'$date'.0000' >>punsch.log
+fi
+
+### Run the first part to initiate either new download or new calculation
+
+python3 punschFirstStep.py
+
+### Run dl or calc
+
+lastLog=$( tail -n 1 punsch.log)
+lastMessage=$(echo $lastLog | cut -d \. -f 1 )
+lastValue=$(echo $lastLog | cut -d \. -f 4 )
+
+#echo $lastMessage
+#echo $lastValue
+if test $lastMessage = "dl_request" && test $lastValue -eq 1
+then
+    mv punschRawInput punschRawInput.old
+    wget -O punschRawInput "https://www.systembolaget.se/api/assortment/products/xml" 2>punsch.error
+    rm punschRawInput.old
+    # move RawInput to temp
+    # Download new file
+    # if allgood : continue; else : restore old Input # to be implemented
+elif test $lastMessage = "calc_request" && test $lastValue -eq 1 && ! test -s ppkList.txt
+then
+    touch ppkList.txt
+    echo "run calculation"
+    userInput='c'
+elif test $lastMessage = "calc_request" && test $lastValue -eq 1 && test -s ppkList.txt
+then
+    echo "saved output already exits"
+    read -p "Calculate new data (c) or show existing data (d)?" choice
+    case "$choice" in
+	c|C ) echo "running calculation..."
+	      userInput='c' ;;
+	d|D ) echo "showing data..."
+	      userInput='d' ;;
+	* ) echo "invalid coice"
+	    userInput='i' ;;
+    esac
+fi
+if test $userInput = 'c'
+then
+    python3 punschProcessing.py
+    sed 's/\t/,/g' ppkList.txt >ppk.txt
+    echo "calculation complete"
+elif test $userInput = 'd'
+then
+    #python3 punschOutput.py ### not implemented yet
+    echo ""
+fi
+     
+
+     
+
+with open('punsch.log', 'r') as logFile :
+    print("parsing log file...")
+    logLines = logFile.readlines()
+    logIndexReversed = 1
+    while logIndexReversed <= len(logLines) : # this part looks for the latest "dl_status" message in the log file
+        lastLogLine = logLines[-logIndexReversed]
+        tempLogList = lastLogLine.split(".")
+        if tempLogList[0] == "dl_status" :
+            latestStatusEntry = tempLogList
+            break
+        elif tempLogList[0] == ("calc_request" or "dl_request") :
+            exit
+        else :
+            logIndexReversed += 1
+    if logIndexReversed >= len(logLines) :
+        print("missing proper log. please contact admin.")
+        exit
+
+print("log entry found")
+timeToUpdate = False
+requestCalculation = False
+
+def yesNoPrompt() :
+    userPromptChoice = False
+    numberOfChoices = 0
+    while userPromptChoice not in ["Y","y","N","n"] :
+        if numberOfChoices > 0 :
+            print("(Y/N)")
+        userPromptChoice = input("")
+        numberOfChoices += 1
+        if numberOfChoices > 5 :
+            return None
+    if userPromptChoice in ["Y","y"] :
+        return True
+    else :
+        return False
+
+
+currentDate = latestStatusEntry[2]
+currentMonth = latestStatusEntry[1]
+dlTime = latestStatusEntry[3]
+dlDate = dlTime[2:]
+dlMonth = dlTime[:2]
+#print("current: ",currentMonth, currentDate)
+#print("dl: ", dlMonth,dlDate)
+if int(currentDate) != int(dlDate) or int(currentMonth) != int(dlMonth) :
+    print('The inputfile might not be up to date. It was last updated on ', dlDate, "/", dlMonth)
+    print("Do you want to update now? (Y/N)")
+    userChoice = yesNoPrompt()
+    if userChoice == True :
+        timeToUpdate = True
+        with open('punsch.log', "a") as logFile :
+            logFile.write('dl_request.' + currentMonth + "." + currentDate + ".1\n")
+    elif userChoice == False :
+        print("Do you want to continue with the old data? (Y/N)")
+        requestCalculation = yesNoPrompt()
+        if requestCalculation == False :
+            with open("punsch.log", "a") as logFile :
+                logFile.write("calc_request."+currentMonth+"."+currentDate+".0\n")
+        elif requestCalculation == True :
+            with open("punsch.log", "a") as logFile :
+                logFile.write("calc_request."+currentMonth+"."+currentDate+".1\n")
+elif int(currentDate) == int(dlDate) or int(currentMonth) == int(dlMonth) :
+    print("input is up to date! Continuing to calculation!")
+    with open("punsch.log", 'a') as logFile :
+        logFile.write("calc_request."+currentMonth+'.'+currentDate+'.1\n')
+else :
+    print("something went wrong...")
+    exit
+
+
+
+    
+import bs4
+from bs4 import BeautifulSoup
+
+print('parsing input (this might take a little while)')
+with open('punschRawInput', 'r') as input :
+    soup = BeautifulSoup(input, 'xml')
+
+output = open('ppkList.txt', 'w+')
+print('creating output file')
+output.write('Namn\tPris\tVolym\tAlkoholhalt\tAPK\tPPK\n')
+for drinkType in soup.find_all('Varugrupp') :
+    if drinkType.string == 'Punsch' :        
+        for info in drinkType.parent :
+            if info.name == 'Namn' :
+                output.write(info.string + '\t')
+            if info.name == 'Prisinklmoms' :
+                pris = int(float(info.string))
+                output.write(str(pris) + '\t')
+            if info.name == 'Volymiml' :
+                volym = float('{0:.2f}'.format(float(info.string)))
+                output.write(str(volym) + '\t')
+            if info.name == 'Alkoholhalt' :
+                procent = int(float(info.string[:-1]))/100
+                output.write(str(procent) + '\t')
+        apk = ((procent*volym)/pris)
+        output.write(str(apk) + '\t')
+        output.write(str(volym/pris) + "\n")
+
+output.close()
