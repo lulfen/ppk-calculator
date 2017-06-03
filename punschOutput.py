@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 from shutil import get_terminal_size
 from pathlib import Path
+from operator import itemgetter
 
 def calculatePPK(inputCheckInternal) :
     if inputCheckInternal == True :
@@ -15,23 +16,23 @@ def calculatePPK(inputCheckInternal) :
 
         output = open('ppk.txt', 'w+')
         print('creating output file')
-        output.write('Namn\tPris\tVolym\tAlkoholhalt\tAPK\tPPK\n')
+        output.write('Namn,Pris,Volym,Alkoholhalt,APK,PPK\n')
         for drinkType in soup.find_all('Varugrupp') :
             if drinkType.string == 'Punsch' :        
                 for info in drinkType.parent :
                     if info.name == 'Namn' :
-                        output.write(info.string + '\t')
+                        output.write(info.string + ',')
                     if info.name == 'Prisinklmoms' :
                         pris = int(float(info.string))
-                        output.write(str(pris) + '\t')
+                        output.write(str(pris) + ',')
                     if info.name == 'Volymiml' :
                         volym = float('{0:.2f}'.format(float(info.string)))
-                        output.write(str(volym) + '\t')
+                        output.write(str(volym) + ',')
                     if info.name == 'Alkoholhalt' :
                         procent = int(float(info.string[:-1]))/100
-                        output.write(str(procent) + '\t')
+                        output.write(str(procent) + ',')
                 apk = ((procent*volym)/pris)
-                output.write(str(apk) + '\t')
+                output.write(str(apk) + ',')
                 output.write(str(volym/pris) + "\n")
 
 	output.close()
@@ -39,6 +40,8 @@ def calculatePPK(inputCheckInternal) :
     else :
         print("It seems that something is wrong with the input. Try downloading again.")
         return False
+
+### This function should probably be removed since this part is now done in the displayData function
 
 def createResultDB(resultDBInternal, outputCheckInternal) :
     if outputCheckInternal == False :
@@ -60,9 +63,53 @@ def createResultDB(resultDBInternal, outputCheckInternal) :
     return resultDBInternal
 
 def displayResult(sortValue, outputCheckInternal) :
-    sortedResult = [(punsch, resultDB[punsch]) for punsch in sorted(resultDB, key=resultDB.get, reverse=True)]
-    for punsch, value in sortedResult :
-        print(punsch, value)
+    resultDB = []
+    with open("data/ppk.txt", 'r') as ppkRawCalc :
+        ppkRawLabels = ppkRawCalc.readline()
+        ppkLabels = ppkRawLabels.split(",")
+        ppkRawLines = ppkRawCalc.readlines()
+    
+    lnInd=0
+    for ppkLine in ppkRawLines :
+        ppkLineCurr = ppkLine.split(",")
+        for attr in ppkLineCurr :
+            aInd = ppkLineCurr.index(attr)
+            if aInd > 0 :
+                decCheck = float("{0:.5f}".format(float(attr)))
+                if decCheck.is_integer() :
+                    ppkLineCurr[aInd] = int(float(attr))
+                else :
+                    ppkLineCurr[aInd] = decCheck
+        resultDB.append(ppkLineCurr)
+
+    longList =[]
+    for label in ppkLabels :
+        longList.append(len(label))
+    longValue = 0
+    if sortValue == 0 :
+        displayData = sorted(resultDB, key=itemgetter(sortValue))
+    else :
+        displayData = sorted(resultDB, key=itemgetter(sortValue), reverse=True)
+    for punsch in displayData :
+        for value in punsch :
+            valInd = punsch.index(value)
+            if len(str(value)) > longList[valInd] :
+                longList[valInd] = len(str(value))
+            
+    labelLine = ""
+    for label in ppkLabels :
+        labelCurr = label.ljust(longList[ppkLabels.index(label)] + 2)
+        labelLine = labelLine + labelCurr
+    print(labelLine)
+    for punsch in displayData :
+        labelLine = ""
+        for label in punsch :
+            labInd = punsch.index(label)
+            labelStr = str(label)
+            labelCurr = labelStr.ljust(longList[labInd]+2)
+            labelLine = labelLine + labelCurr
+        print(labelLine)
+    return
 
 def menu(menuTitle, optionlist) :
     if (menuTitle or optionlist) == False :
@@ -117,7 +164,7 @@ else :
     print("It seems that something is wrong with your installation. Try running the setup.sh file again.")
     exit
         
-punschInputPath = mainPunschPath + "data/punschRawInput"
+punschInputPath = mainPunschPath + "/data/punschRawInput"
 if punschInputPath.is_file() :
     punschInputInfo = os.stat("/data/punschRawInput")
     if punschInputInfo.st_size > 20 :
@@ -156,7 +203,7 @@ dlMonth = dateTemp.group()[5:7]
 dateToday = datetime.today().day
 monthToday = datetime.today().month
 downloadMenu = ["Download new data (old data will be deleted)", "Back to main menu"]
-if "00" != dateToday :
+if dlDate != dateToday and dlMonth != monthToday :
     downloadTitle = "The data was last uppdated on "+ dlDate, "/", dlMonth, "(DD/MM)"]
 else :
     downloadTitle = "No data found. Download recommended"
@@ -187,7 +234,7 @@ while mainLoop != "Quit" :
         ### ngt med result
     elif mainLoop == 1 :
         if outputCheck == True :
-            print("Previous calculation already exists. Do you want to redo the calculation anyway?\n(Recommended if you recently downloaded the input.)")
+            print("Previous calculation already exists. Do you want to redo the calculation anyway?\n(Recommended if you recently downloaded new input data.)")
             result = yesNoPrompt()
         else :
             result = True

@@ -1,4 +1,5 @@
 # ppk-take2
+Made in python 3.5.2
 let's do this again...
 
 This is a project with two different purposes:
