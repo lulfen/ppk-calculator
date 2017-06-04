@@ -1,10 +1,14 @@
 import os
 import bs4
+import urllib.request
 from bs4 import BeautifulSoup
 from datetime import datetime
 from shutil import get_terminal_size
 from pathlib import Path
 from operator import itemgetter
+
+def downloadData() :
+    urllib.request.retrieve('https://www.systembolaget.se/api/assortment/products/xml', './data/punschRawInput')
 
 def calculatePPK(inputCheckInternal) :
     if inputCheckInternal == True :
@@ -63,6 +67,9 @@ def createResultDB(resultDBInternal, outputCheckInternal) :
     return resultDBInternal
 
 def displayResult(sortValue, outputCheckInternal) :
+    if outputCheckInternal == False :
+        print("No calculated data found. Please run calculation again.")
+        return None
     resultDB = []
     with open("data/ppk.txt", 'r') as ppkRawCalc :
         ppkRawLabels = ppkRawCalc.readline()
@@ -152,9 +159,10 @@ def yesNoPrompt() :
         return False
 
 ### Find the date for last download
+### This block is probably not needed anymore.
 
 mainPunschPath = os.path.abspath(".")
-punschLogPath = Path(mainPunschPath + "data/punsch.log")
+punschLogPath = Path(mainPunschPath + "/data/punsch.log")
 if punschLogPath.is_file() :
     logCheck = True
     with open("punsch.log", 'r') as logFile :
@@ -177,7 +185,7 @@ if punschInputPath.is_file() :
         print("It seems that something is wrong with your input data. Try downloading it again.")
         dateRaw = "00000000000000000000"
 else :
-    print("It seems that something is wrong with your input data. Try downloading it again.")
+    print("It seems that this either is the first time you're running this program or there is something wrong with your input data. Try downloading it again.")
     dateRaw = "00000000000000000000"
 
 punschOutputPath = Path(mainPunschPath + "/data/ppk.txt")
@@ -202,12 +210,14 @@ dlMonth = dateTemp.group()[5:7]
 
 dateToday = datetime.today().day
 monthToday = datetime.today().month
-downloadMenu = ["Download new data (old data will be deleted)", "Back to main menu"]
-if dlDate != dateToday and dlMonth != monthToday :
-    downloadTitle = "The data was last uppdated on "+ dlDate, "/", dlMonth, "(DD/MM)"]
+checkDataMenu = ["Download new data (old data will be deleted)", "Back to main menu"]
+if dlDate == dateToday and dlMonth == monthToday :
+    checkDataTitle = "Data is up to date!"
+elif inputCheck == True :
+    chechDataTitle = "The data was last uppdated on "+ dlDate, "/", dlMonth, "(DD/MM)"
 else :
-    downloadTitle = "No data found. Download recommended"
-    downloadMenu[0] = "Download data"
+    checkDataTitle = "No data found. Download recommended"
+    checkDataMenu[0] = "Download data"
 
  ### check for prev calc output and prompt to do again
 #displayResultMenu ### ask what attr to sort by then do
@@ -231,11 +241,15 @@ while mainLoop != "Quit" :
     mainLoop = mainMenu[userChoice]
     if mainLoop == 0 :
         result = menu(checkDataTitle, checkDataMenu)
+        if result == True :
+            ### initiate download
+            elif result == False :
+                mainLoop = None
         ### ngt med result
     elif mainLoop == 1 :
         if outputCheck == True :
             print("Previous calculation already exists. Do you want to redo the calculation anyway?\n(Recommended if you recently downloaded new input data.)")
-            result = yesNoPrompt()
+            result = yesNoPrompt() 
         else :
             result = True
         if result == True :
