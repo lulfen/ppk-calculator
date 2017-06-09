@@ -9,20 +9,9 @@ from pathlib import Path
 from operator import itemgetter
 
 def downloadData() :
-    #url = 'https://www.systembolaget.se/api/assortment/products/xml'
     print("Downloading...")
-    #try:
-    #    x = urllib.request.urlopen(url)
-    #    
-    #    saveFile = open('./data/punschRawInput','w+')
-    #    unicode(requestHandler.read(), 'utf-8')
-    #    saveFile.write(str(unicode(x.read(), 'utf-8')))
-    #    saveFile.close()
-    #except Exception as e:
-    #    print(str(e))
     os.system("bash download.sh")
     print("Download complete!")
-    #input("press ENTER to return to main menu")
     return
 
 def calculatePPK(inputCheckInternal) :
@@ -59,27 +48,6 @@ def calculatePPK(inputCheckInternal) :
     else :
         print("It seems that something is wrong with the input. Try downloading again.")
         return False
-
-### This function should probably be removed since this part is now done in the displayData function
-
-def createResultDB(resultDBInternal, outputCheckInternal) :
-    if outputCheckInternal == False :
-        print("Can't find any calculated data. Please run the calculation first")
-        return None
-    elif resultDBInternal == True :
-        return resultDBInternal
-    resultDBInternal = {}
-    with open("./data/ppk.txt", 'r') as ppkRawCalc :
-        ppkRawLabels = ppkRawCalc.readline()
-        ppkLabels = ppkRawLabels.split(".")
-        ppkRawLines = ppkRawCalc.readlines()
-        #ppkLines = ppkRawLines.split(".")
-    for ppkLine in ppkLines :
-        ppkLineCurr = ppkLine.split(".")
-        ppkName = ppkLineCurr[0]
-        ppkLineCurr.remove(ppkLineCurr[0])
-        resultDBInternal[ppkName] = ppkLineCurr
-    return resultDBInternal
 
 def displayResult(sortValue, outputCheckInternal) :
     if outputCheckInternal == False :
@@ -179,24 +147,14 @@ def yesNoPrompt() :
     else :
         return False
 
+### Setup
+
 ### Find the date for last download
-### This block is probably not needed anymore.
 
 mainPunschPath = os.path.abspath(".")
-punschLogPath = Path(mainPunschPath + "/data/punsch.log")
-if punschLogPath.is_file() :
-    logCheck = True
-    with open("punsch.log", 'r') as logFile :
-        lastLogLine = logFile.readline()[-1]
-        lastLogEntry = lastLogLine.split(".")
-else :
-    print("It seems that something is wrong with your installation. Try running the setup.sh file again.")
-    exit
-        
 punschInputPath = Path(mainPunschPath + "/data/punschRawInput")
 if punschInputPath.is_file() :
     punschInputInfo = os.stat("./data/punschRawInput")
-    print("!!!!!!!",type(punschInputInfo.st_size))
     if punschInputInfo.st_size > 20 :
         inputCheck = True
         with open("./data/punschRawInput", 'r') as inputData :
@@ -215,22 +173,12 @@ else :
 
 punschOutputPath = Path(mainPunschPath + "/data/ppk.txt")
 if punschOutputPath.is_file() :
-#    punschOutputInfo = os.stat(str(punschOutputPath))
-#    punschModifiedSec = punschOutputInfo.st_mtime
-#    dateRaw = str(datetime.utcfromtimestamp(punschModifiedSec))
     outputCheck = True
-#    punschModifiedDate = punschModifiedRaw[5:7]
-#    punschModifiedMonth = punschModifiedRaw[8:10]
 else :
-#    punschModifiedMonth = 0
-#    punschModifiedDate = 0
-#    dateRaw = "0000000000000000000000000000"
     outputCheck = False
 
-### Setup
         
 dateTemp = re.search("[0-9]{4}-[0-1][0-9]-[0-3][0-9]", dateRaw)
-#print(dateTemp, type(dateTemp))
 dlDate = dateTemp.group()[8:10]
 dlMonth = dateTemp.group()[5:7]
 
@@ -242,24 +190,15 @@ if monthToday < 10 :
     monthToday = "0" + str(monthToday)
 checkDataMenu = ["Download new data (old data will be deleted)", "Back to main menu"]
 checkDataTitle = ""
-#print("dlDate", dlDate)
-#print("dateToday ", dateToday)
-#print("dlMonth", dlMonth)
-#print("monthToday", monthToday)
 if dlDate == dateToday and dlMonth == monthToday :
     checkDataTitle = "Data is up to date!"
 elif inputCheck == True :
     checkDataTitle = "Data was last uppdated on "+ dlDate + "/" + dlMonth + " (DD/MM)"
-    #print(type(checkDataTitle))
 else :
     checkDataTitle = "No data found. Download recommended"
     checkDataMenu[0] = "Download data"
 
- ### check for prev calc output and prompt to do again
-#displayResultMenu ### ask what attr to sort by then do
-
-#userChoice = menu(welcome, mainMenu)
-#print(mainMenu[userChoice])
+    
 displayResultTitle = "What do you want to sort by?"
 displayResultMenu = ["Namn", "Pris", "Volym", "Alkoholhalt", "APK", "PPK"]
 
@@ -310,5 +249,3 @@ while mainLoop != "Quit" :
         
 
 print("Bye, bye!")
-#print(mainMenu)
-#print(choiceLog)
