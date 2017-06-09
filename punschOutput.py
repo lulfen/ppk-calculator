@@ -1,4 +1,4 @@
-import os
+import os, sys
 import bs4
 import urllib.request
 import re
@@ -9,19 +9,20 @@ from pathlib import Path
 from operator import itemgetter
 
 def downloadData() :
-    url = 'https://www.systembolaget.se/api/assortment/products/xml'
+    #url = 'https://www.systembolaget.se/api/assortment/products/xml'
     print("Downloading...")
-    try:
-        x = urllib.request.urlopen(url)
-        
-        saveFile = open('./data/punschRawInput','w+')
-        unicode(requestHandler.read(), 'utf-8')
-        saveFile.write(str(unicode(x.read(), 'utf-8')))
-        saveFile.close()
-    except Exception as e:
-        print(str(e))
+    #try:
+    #    x = urllib.request.urlopen(url)
+    #    
+    #    saveFile = open('./data/punschRawInput','w+')
+    #    unicode(requestHandler.read(), 'utf-8')
+    #    saveFile.write(str(unicode(x.read(), 'utf-8')))
+    #    saveFile.close()
+    #except Exception as e:
+    #    print(str(e))
+    os.system("bash download.sh")
     print("Download complete!")
-    input("press ENTER to return to main menu")
+    #input("press ENTER to return to main menu")
     return
 
 def calculatePPK(inputCheckInternal) :
@@ -36,7 +37,8 @@ def calculatePPK(inputCheckInternal) :
         print('creating output file')
         output.write('Namn,Pris,Volym,Alkoholhalt,APK,PPK\n')
         for drinkType in soup.find_all('Varugrupp') :
-            if drinkType.string == 'Punsch' :        
+            if drinkType.string == 'Punsch' :
+                print(drinkType.string)
                 for info in drinkType.parent :
                     if info.name == 'Namn' :
                         output.write(info.string + ',')
@@ -240,15 +242,15 @@ if monthToday < 10 :
     monthToday = "0" + str(monthToday)
 checkDataMenu = ["Download new data (old data will be deleted)", "Back to main menu"]
 checkDataTitle = ""
-print("dlDate", dlDate)
-print("dateToday ", dateToday)
-print("dlMonth", dlMonth)
-print("monthToday", monthToday)
+#print("dlDate", dlDate)
+#print("dateToday ", dateToday)
+#print("dlMonth", dlMonth)
+#print("monthToday", monthToday)
 if dlDate == dateToday and dlMonth == monthToday :
     checkDataTitle = "Data is up to date!"
 elif inputCheck == True :
     checkDataTitle = "Data was last uppdated on "+ dlDate + "/" + dlMonth + " (DD/MM)"
-    print(type(checkDataTitle))
+    #print(type(checkDataTitle))
 else :
     checkDataTitle = "No data found. Download recommended"
     checkDataMenu[0] = "Download data"
