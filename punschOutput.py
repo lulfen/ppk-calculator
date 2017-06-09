@@ -1,4 +1,20 @@
-import os, sys
+# This file is part of Ulfen's PPK-Calculator.
+# 
+# Ulfen's PPK-Calculator is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# any later version.
+# 
+# Ulfen's PPK-Calculator is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with Ulfen's PPK-Calculator.  If not, see
+# <http://www.gnu.org/licenses/>.
+
+import os, sys, time
 import bs4
 import urllib.request
 import re
@@ -12,6 +28,7 @@ def downloadData() :
     print("Downloading...")
     os.system("bash download.sh")
     print("Download complete!")
+    time.sleep(5)
     return
 
 def calculatePPK(inputCheckInternal) :
@@ -24,10 +41,10 @@ def calculatePPK(inputCheckInternal) :
 
         output = open('./data/ppk.txt', 'w+')
         print('creating output file')
+        time.sleep(5)
         output.write('Namn,Pris,Volym,Alkoholhalt,APK,PPK\n')
         for drinkType in soup.find_all('Varugrupp') :
             if drinkType.string == 'Punsch' :
-                print(drinkType.string)
                 for info in drinkType.parent :
                     if info.name == 'Namn' :
                         output.write(info.string + ',')
@@ -109,6 +126,7 @@ def displayResult(sortValue, outputCheckInternal) :
 def menu(menuTitle, optionlist) :
     if (menuTitle or optionlist) == False :
         print("Something went wrong. Please try again.")
+        input("press ENTER to return to main menu")
         return None
     terminalSize = get_terminal_size().lines
     print("\n" * 11, end='')
@@ -166,10 +184,12 @@ if punschInputPath.is_file() :
         dateRaw = "0000-00-00"
         print(type(dateRaw))
         inputCheck = False
+        time.sleep(5)
 else :
     print("It seems that this either is the first time you're running this program or there is something wrong with your input data. Try downloading it again.")
     dateRaw = "0000-00-00"
     inputCheck = False
+    time.sleep(5)
 
 punschOutputPath = Path(mainPunschPath + "/data/ppk.txt")
 if punschOutputPath.is_file() :
@@ -216,7 +236,6 @@ while mainLoop != "Quit" :
     userChoice = menu(welcome, mainMenu)
     mainLoop = mainMenu[userChoice]
     choiceLog.append(mainLoop)
-    #print(userChoice)
     if mainLoop == mainMenu[0] :
         result = menu(checkDataTitle, checkDataMenu)
         if result == 0 :
@@ -228,9 +247,7 @@ while mainLoop != "Quit" :
                 mainLoop = None
         elif result == 1 :
             mainLoop = None
-        ### ngt med result
     elif mainLoop == mainMenu[1] :
-        #print(outputCheck)
         if outputCheck == True :
             print("Previous calculation already exists. Do you want to redo the calculation anyway?\n(Recommended if you recently downloaded new input data.)")
             result = yesNoPrompt() 

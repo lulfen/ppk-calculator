@@ -1,8 +1,24 @@
-# ppk-take2
-Made in python 3.5.2
-let's do this again...
+# This file is part of Ulfen's PPK-Calculator.
+# 
+# Ulfen's PPK-Calculator is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# any later version.
+# 
+# Ulfen's PPK-Calculator is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with Ulfen's PPK-Calculator.  If not, see
+# <http://www.gnu.org/licenses/>.
 
-This is a project with two different purposes:
+Ulfen's PPK-Calculator
+Made in python 3.5.2
+
+
+This is a project that had two different purposes:
 1 - me learning how to work with both python and GitHub
 2 - calculating which punsch gives you the most punsch per Swedish Krona. For those of you who don't know about this beautiful, golden liquor, it's a kind of liqour that is popular in Sweden (and parts of Finland), especially among students. It's a pretty sweet drink made primarily on arrak.
 
@@ -17,6 +33,5 @@ work remaining:
      - cleanup code
      - check setup properly
      - make complete list of which modules are needed for it to run properly
-     
 
 After completing this I'm considering turning it into a more general search utility for the sortiment of the Swedish Systembolaget (govermental monopoly on alcohol).
