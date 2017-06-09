@@ -13,18 +13,11 @@ then
     mkdir ./data
 fi
 
-### Check for log fil
+### Check for calculation
 
-if ! [ -s ./data/punsch.log ]
+if ! [ -s ./data/ppk.txt ]
 then
-    touch ./data/punsch.log
-fi
-
-### Check for error log
-
-if ! [ -s ./data/punsch.err ]
-then
-    touch ./data/punsch.err
+    touch ./data/ppk.txt
 fi
 
 ### Check for input file
@@ -32,19 +25,6 @@ fi
 if ! [ -s ./data/punschRawInput ]
 then
     touch ./data/punschRawInput
-    echo "dl_status."$date".0000" >>punsch.log
 fi    
 
-### Check status of input XML
-
-if [ -s punschRawInput ]
-then
-    created=$(grep -oE "<[^>]*tid>[^<]*<[^>]*>" punschRawInput | sed "s/<[^>]*>//g")
-    dlmonth=$(echo $created | grep -o '\-[0-9][0-9]\-' | grep -o '[0-9]*')
-    dldate=$(echo $created | grep -o '\-[0-9][0-9][^\-]' | grep -o '[0-9]*')
-    echo -e 'dl_status.'$date'.'$dlmonth$dldate >>punsch.log
-else
-    echo -e 'dl_status.'$date'.0000' >>punsch.log
-fi
-
-python3 punschCalculator.py
+echo "Setup complete! Run 'python3 punschOutput.py' to start the actual prgoram."
