@@ -16,7 +16,6 @@
 
 import os, sys, time
 import bs4
-import urllib.request
 import re
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -26,10 +25,10 @@ from operator import itemgetter
 
 def downloadData() :
     print("Downloading...")
-    os.system("bash download.sh")
+    os.system("bash ./data/download.sh")
     print("Download complete!")
     time.sleep(5)
-    return
+    return True
 
 def calculatePPK(inputCheckInternal) :
     if inputCheckInternal == True :
@@ -64,11 +63,13 @@ def calculatePPK(inputCheckInternal) :
         return True
     else :
         print("It seems that something is wrong with the input. Try downloading again.")
+        time.sleep(5)
         return False
 
 def displayResult(sortValue, outputCheckInternal) :
     if outputCheckInternal == False :
         print("No calculated data found. Please run calculation again.")
+        time.sleep(5)
         return None
     resultDB = []
     with open("./data/ppk.txt", 'r') as ppkRawCalc :
@@ -165,66 +166,68 @@ def yesNoPrompt() :
     else :
         return False
 
-### Setup
-
-### Find the date for last download
-
-mainPunschPath = os.path.abspath(".")
-punschInputPath = Path(mainPunschPath + "/data/punschRawInput")
-if punschInputPath.is_file() :
-    punschInputInfo = os.stat("./data/punschRawInput")
-    if punschInputInfo.st_size > 20 :
-        inputCheck = True
-        with open("./data/punschRawInput", 'r') as inputData :
-            dateRaw = ""
-            for byte in range(20) :
-                dateRaw = dateRaw + inputData.read(byte)
-    elif punschInputInfo.st_size < 20 :
-        print("It seems that something is wrong with your input data. Try downloading it again.")
+def checkInput(mainPunschPath):
+    punschInputPath = Path(mainPunschPath + "/data/punschRawInput")
+    if punschInputPath.is_file() :
+        punschInputInfo = os.stat("./data/punschRawInput")
+        if punschInputInfo.st_size > 20 :
+            inputCheck = True
+            with open("./data/punschRawInput", 'r') as inputData :
+                dateRaw = ""
+                for byte in range(20) :
+                    dateRaw = dateRaw + inputData.read(byte)
+        elif punschInputInfo.st_size < 20 :
+            print("It seems that something is wrong with your input data. Try downloading it again.")
+            dateRaw = "0000-00-00"
+            inputCheck = False
+            time.sleep(5)
+    else :
+        print("It seems that this is the first time you're running this program (or someone removed your input data). \nTry downloading it again.")
         dateRaw = "0000-00-00"
-        print(type(dateRaw))
         inputCheck = False
         time.sleep(5)
-else :
-    print("It seems that this either is the first time you're running this program or there is something wrong with your input data. Try downloading it again.")
-    dateRaw = "0000-00-00"
-    inputCheck = False
-    time.sleep(5)
+    return dateRaw, inputCheck
 
-punschOutputPath = Path(mainPunschPath + "/data/ppk.txt")
-if punschOutputPath.is_file() :
-    outputCheck = True
-else :
-    outputCheck = False
 
-        
-dateTemp = re.search("[0-9]{4}-[0-1][0-9]-[0-3][0-9]", dateRaw)
-dlDate = dateTemp.group()[8:10]
-dlMonth = dateTemp.group()[5:7]
+def checkOutput(mainPunschPath):
+    punschOutputPath = Path(mainPunschPath + "/data/ppk.txt")
+    if punschOutputPath.is_file() :
+        return True
+    else :
+        return False
 
-dateToday = datetime.today().day
-monthToday = datetime.today().month
-if dateToday < 10 :
-    dateToday = "0" + str(dateToday)
-if monthToday < 10 :
-    monthToday = "0" + str(monthToday)
-checkDataMenu = ["Download new data (old data will be deleted)", "Back to main menu"]
-checkDataTitle = ""
-if dlDate == dateToday and dlMonth == monthToday :
-    checkDataTitle = "Data is up to date!"
-elif inputCheck == True :
-    checkDataTitle = "Data was last uppdated on "+ dlDate + "/" + dlMonth + " (DD/MM)"
-else :
-    checkDataTitle = "No data found. Download recommended"
-    checkDataMenu[0] = "Download data"
+def checkData(dateRaw, inputCheck):
+    dateTemp = re.search("[0-9]{4}-[0-1][0-9]-[0-3][0-9]", dateRaw)
+    dlDate = dateTemp.group()[8:10]
+    dlMonth = dateTemp.group()[5:7]
+    dateToday = datetime.today().day
+    monthToday = datetime.today().month
+    if dateToday < 10 :
+        dateToday = "0" + str(dateToday)
+    if monthToday < 10 :
+        monthToday = "0" + str(monthToday)
+    checkDataMenu = ["Download new data (old data will be deleted)", "Back to main menu"]
+    checkDataTitle = ""
+    if dlDate == dateToday and dlMonth == monthToday :
+        checkDataTitle = "Data is up to date!"
+    elif inputCheck == True :
+        checkDataTitle = "Data was last uppdated on "+ dlDate + "/" + dlMonth + " (DD/MM)"
+    else :
+        checkDataTitle = "No data found. Download recommended"
+        checkDataMenu[0] = "Download data"
+    return checkDataTitle, checkDataMenu
 
-    
 displayResultTitle = "What do you want to sort by?"
 displayResultMenu = ["Namn", "Pris", "Volym", "Alkoholhalt", "APK", "PPK"]
 
-with open("welcomemsg.txt", 'r') as msg :
+with open("./data/welcomemsg.txt", 'r') as msg :
     welcome = msg.read()
 mainMenu = ["Check/download data", "Calculate", "Display result", "Quit"]
+
+mainPunschPath = os.path.abspath(".")
+dateRaw, inputCheck = checkInput(mainPunschPath)
+outputCheck = checkOutput(mainPunschPath)
+checkDataTitle, checkDataMenu = checkData(dateRaw, inputCheck)
 
 ### END setup
 
@@ -237,12 +240,14 @@ while mainLoop != "Quit" :
     mainLoop = mainMenu[userChoice]
     choiceLog.append(mainLoop)
     if mainLoop == mainMenu[0] :
+        checkDataTitle, checkDataMenu=checkData(dateRaw, inputCheck)
         result = menu(checkDataTitle, checkDataMenu)
         if result == 0 :
             print("Are you sure?")
             answ = yesNoPrompt()
             if answ == True :
                 downloadData()
+                dateRaw, inputCheck = checkInput(mainPunschPath)
             else :
                 mainLoop = None
         elif result == 1 :
@@ -258,6 +263,7 @@ while mainLoop != "Quit" :
         else :
             mainLoop = None
     elif mainLoop == mainMenu[2] :
+        outputCheck = checkOutput(mainPunschPath)
         result = menu(displayResultTitle, displayResultMenu)
         print("\n" * 5)
         print("sorting by: ", displayResultMenu[result])

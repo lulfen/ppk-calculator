@@ -16,31 +16,17 @@
 # along with Ulfen's PPK-Calculator.  If not, see
 # <http://www.gnu.org/licenses/>.
 
-clear
-echo "Welcome to Ulfens punsch calculator!"
+# This file used to contain more stuff that has become more and more obsolete.
 
-date=$(date +'%m.%d')
-userInput='i'
-
-### Check for data dir
+### Create data dir
 
 if ! [ -d "./data" ]
 then
     mkdir ./data
 fi
+mv download.sh gpl.txt README.md welcomemsg.txt ./data
 
-### Check for calculation
+echo "Setup complete! Run 'python3 ppk-calculator.py' to start the actual prgoram."
+echo -e "Make sure that the following modules are installed to avoid problems:\n- os, re, sys\n- time, datetime\n- BeautifulSoup\n- shutil\n- pathlib\n- operator"
 
-if ! [ -s ./data/ppk.txt ]
-then
-    touch ./data/ppk.txt
-fi
-
-### Check for input file
-
-if ! [ -s ./data/punschRawInput ]
-then
-    touch ./data/punschRawInput
-fi    
-
-echo "Setup complete! Run 'python3 punschOutput.py' to start the actual prgoram."
+mv setup.sh ./data
