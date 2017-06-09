@@ -135,7 +135,7 @@ def menu(menuTitle, optionlist) :
     print("\n" * 4, end='')
     for option in optionlist :
         print(optionlist.index(option)+1, ")   ", option)
-    print("\n" * (terminalSize - len(optionlist) - 18))
+    print("\n" * (terminalSize - len(optionlist) - 20))
     userChoice = 'q'
     possibleChoices = []
     for l in range(1,len(optionlist)+1) :
@@ -217,6 +217,8 @@ def checkData(dateRaw, inputCheck):
         checkDataMenu[0] = "Download data"
     return checkDataTitle, checkDataMenu
 
+### Begin setup
+
 displayResultTitle = "What do you want to sort by?"
 displayResultMenu = ["Namn", "Pris", "Volym", "Alkoholhalt", "APK", "PPK"]
 
@@ -269,6 +271,6 @@ while mainLoop != "Quit" :
         print("sorting by: ", displayResultMenu[result])
         display = displayResult(result, outputCheck)
         
-        
+### Exit ppk-calculator
 
 print("Bye, bye!")
