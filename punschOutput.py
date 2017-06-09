@@ -1,6 +1,7 @@
 import os
 import bs4
 import urllib.request
+import re
 from bs4 import BeautifulSoup
 from datetime import datetime
 from shutil import get_terminal_size
@@ -8,17 +9,30 @@ from pathlib import Path
 from operator import itemgetter
 
 def downloadData() :
-    urllib.request.retrieve('https://www.systembolaget.se/api/assortment/products/xml', './data/punschRawInput')
+    url = 'https://www.systembolaget.se/api/assortment/products/xml'
+    print("Downloading...")
+    try:
+        x = urllib.request.urlopen(url)
+        
+        saveFile = open('./data/punschRawInput','w+')
+        unicode(requestHandler.read(), 'utf-8')
+        saveFile.write(str(unicode(x.read(), 'utf-8')))
+        saveFile.close()
+    except Exception as e:
+        print(str(e))
+    print("Download complete!")
+    input("press ENTER to return to main menu")
+    return
 
 def calculatePPK(inputCheckInternal) :
     if inputCheckInternal == True :
         print('parsing input (this might take a little while)')
-        with open('punschRawInput', 'r') as input :
+        with open('./data/punschRawInput', 'r') as input :
             soup = BeautifulSoup(input, 'xml')
         
         print("parsing complete")
 
-        output = open('ppk.txt', 'w+')
+        output = open('./data/ppk.txt', 'w+')
         print('creating output file')
         output.write('Namn,Pris,Volym,Alkoholhalt,APK,PPK\n')
         for drinkType in soup.find_all('Varugrupp') :
@@ -38,8 +52,7 @@ def calculatePPK(inputCheckInternal) :
                 apk = ((procent*volym)/pris)
                 output.write(str(apk) + ',')
                 output.write(str(volym/pris) + "\n")
-
-	output.close()
+        output.close()
         return True
     else :
         print("It seems that something is wrong with the input. Try downloading again.")
@@ -54,7 +67,7 @@ def createResultDB(resultDBInternal, outputCheckInternal) :
     elif resultDBInternal == True :
         return resultDBInternal
     resultDBInternal = {}
-    with open("data/ppk.txt", 'r') as ppkRawCalc :
+    with open("./data/ppk.txt", 'r') as ppkRawCalc :
         ppkRawLabels = ppkRawCalc.readline()
         ppkLabels = ppkRawLabels.split(".")
         ppkRawLines = ppkRawCalc.readlines()
@@ -71,11 +84,11 @@ def displayResult(sortValue, outputCheckInternal) :
         print("No calculated data found. Please run calculation again.")
         return None
     resultDB = []
-    with open("data/ppk.txt", 'r') as ppkRawCalc :
+    with open("./data/ppk.txt", 'r') as ppkRawCalc :
         ppkRawLabels = ppkRawCalc.readline()
         ppkLabels = ppkRawLabels.split(",")
         ppkRawLines = ppkRawCalc.readlines()
-    
+    print("\n")
     lnInd=0
     for ppkLine in ppkRawLines :
         ppkLineCurr = ppkLine.split(",")
@@ -113,9 +126,14 @@ def displayResult(sortValue, outputCheckInternal) :
         for label in punsch :
             labInd = punsch.index(label)
             labelStr = str(label)
+            if labInd == 3 :
+                labelStr = labelStr + " %"
             labelCurr = labelStr.ljust(longList[labInd]+2)
             labelLine = labelLine + labelCurr
         print(labelLine)
+    terminalSize = get_terminal_size().lines
+    print("\n" * (terminalSize-len(displayData)-10))
+    input("press ENTER to return to main menu")
     return
 
 def menu(menuTitle, optionlist) :
@@ -123,7 +141,7 @@ def menu(menuTitle, optionlist) :
         print("Something went wrong. Please try again.")
         return None
     terminalSize = get_terminal_size().lines
-    print("\n" * 10, end='')
+    print("\n" * 11, end='')
     print(menuTitle)
     print("\n" * 4, end='')
     for option in optionlist :
@@ -146,6 +164,7 @@ def menu(menuTitle, optionlist) :
 def yesNoPrompt() :
     userPromptChoice = False
     numberOfChoices = 0
+    print("(Y/N)")
     while userPromptChoice not in ["Y","y","N","n"] :
         if numberOfChoices > 0 :
             print("(Y/N)")
@@ -172,49 +191,64 @@ else :
     print("It seems that something is wrong with your installation. Try running the setup.sh file again.")
     exit
         
-punschInputPath = mainPunschPath + "/data/punschRawInput"
+punschInputPath = Path(mainPunschPath + "/data/punschRawInput")
 if punschInputPath.is_file() :
-    punschInputInfo = os.stat("/data/punschRawInput")
+    punschInputInfo = os.stat("./data/punschRawInput")
+    print("!!!!!!!",type(punschInputInfo.st_size))
     if punschInputInfo.st_size > 20 :
-        inputCheck
-        with open("punschRawInput", 'r') as inputData :
+        inputCheck = True
+        with open("./data/punschRawInput", 'r') as inputData :
             dateRaw = ""
             for byte in range(20) :
                 dateRaw = dateRaw + inputData.read(byte)
     elif punschInputInfo.st_size < 20 :
         print("It seems that something is wrong with your input data. Try downloading it again.")
-        dateRaw = "00000000000000000000"
+        dateRaw = "0000-00-00"
+        print(type(dateRaw))
+        inputCheck = False
 else :
     print("It seems that this either is the first time you're running this program or there is something wrong with your input data. Try downloading it again.")
-    dateRaw = "00000000000000000000"
+    dateRaw = "0000-00-00"
+    inputCheck = False
 
 punschOutputPath = Path(mainPunschPath + "/data/ppk.txt")
 if punschOutputPath.is_file() :
-    punschOutputInfo = os.stat(str(punschOutputPath))
-    punschModifiedSec = punschOutputInfo.st_mtime
-    dateRaw = str(datetime.utcfromtimestamp(punschModifiedSec))
+#    punschOutputInfo = os.stat(str(punschOutputPath))
+#    punschModifiedSec = punschOutputInfo.st_mtime
+#    dateRaw = str(datetime.utcfromtimestamp(punschModifiedSec))
     outputCheck = True
 #    punschModifiedDate = punschModifiedRaw[5:7]
 #    punschModifiedMonth = punschModifiedRaw[8:10]
 else :
 #    punschModifiedMonth = 0
 #    punschModifiedDate = 0
-    dateRaw = "0000000000000000000000000000"
+#    dateRaw = "0000000000000000000000000000"
     outputCheck = False
 
 ### Setup
         
 dateTemp = re.search("[0-9]{4}-[0-1][0-9]-[0-3][0-9]", dateRaw)
+#print(dateTemp, type(dateTemp))
 dlDate = dateTemp.group()[8:10]
 dlMonth = dateTemp.group()[5:7]
 
 dateToday = datetime.today().day
 monthToday = datetime.today().month
+if dateToday < 10 :
+    dateToday = "0" + str(dateToday)
+if monthToday < 10 :
+    monthToday = "0" + str(monthToday)
 checkDataMenu = ["Download new data (old data will be deleted)", "Back to main menu"]
+checkDataTitle = ""
+print("dlDate", dlDate)
+print("dateToday ", dateToday)
+print("dlMonth", dlMonth)
+print("monthToday", monthToday)
 if dlDate == dateToday and dlMonth == monthToday :
     checkDataTitle = "Data is up to date!"
 elif inputCheck == True :
-    chechDataTitle = "The data was last uppdated on "+ dlDate, "/", dlMonth, "(DD/MM)"
+    checkDataTitle = "Data was last uppdated on "+ dlDate + "/" + dlMonth + " (DD/MM)"
+    print(type(checkDataTitle))
 else :
     checkDataTitle = "No data found. Download recommended"
     checkDataMenu[0] = "Download data"
@@ -227,26 +261,35 @@ else :
 displayResultTitle = "What do you want to sort by?"
 displayResultMenu = ["Namn", "Pris", "Volym", "Alkoholhalt", "APK", "PPK"]
 
-with open("welcomemst.txt", 'r') as msg :
-    welcome = mgs.read()
+with open("welcomemsg.txt", 'r') as msg :
+    welcome = msg.read()
 mainMenu = ["Check/download data", "Calculate", "Display result", "Quit"]
 
 ### END setup
 
 ### Main Loop
 
+choiceLog = []
 mainLoop = None
 while mainLoop != "Quit" :
     userChoice = menu(welcome, mainMenu)
     mainLoop = mainMenu[userChoice]
-    if mainLoop == 0 :
+    choiceLog.append(mainLoop)
+    #print(userChoice)
+    if mainLoop == mainMenu[0] :
         result = menu(checkDataTitle, checkDataMenu)
-        if result == True :
-            ### initiate download
-            elif result == False :
+        if result == 0 :
+            print("Are you sure?")
+            answ = yesNoPrompt()
+            if answ == True :
+                downloadData()
+            else :
                 mainLoop = None
+        elif result == 1 :
+            mainLoop = None
         ### ngt med result
-    elif mainLoop == 1 :
+    elif mainLoop == mainMenu[1] :
+        #print(outputCheck)
         if outputCheck == True :
             print("Previous calculation already exists. Do you want to redo the calculation anyway?\n(Recommended if you recently downloaded new input data.)")
             result = yesNoPrompt() 
@@ -256,8 +299,14 @@ while mainLoop != "Quit" :
             calculatePPK(inputCheck)
         else :
             mainLoop = None
-    elif mainLoop == 2 :
+    elif mainLoop == mainMenu[2] :
         result = menu(displayResultTitle, displayResultMenu)
+        print("\n" * 5)
+        print("sorting by: ", displayResultMenu[result])
+        display = displayResult(result, outputCheck)
         
-    elif mainLoop == 4 :
-        mainLoop = "Quit"
+        
+
+print("Bye, bye!")
+#print(mainMenu)
+#print(choiceLog)
